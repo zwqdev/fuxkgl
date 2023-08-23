@@ -1,56 +1,37 @@
-import { useEffect, useRef } from "react";
-import "./App.css";
+import { FC, useEffect, useRef } from "react";
+import { createProgramFromSources, resizeCanvasToDisplaySize } from "./utils";
 
 const vertexGlsl = `
   attribute vec2 a_position;
+  attribute vec2 a_texCoord;
+
   uniform vec2 u_resolution;
+
+  varying vec2 v_texCoord;
+
   void main() {
-    vec2 zeroToOne = a_position.xy / u_resolution;
+    vec2 zeroToOne = a_position / u_resolution;
     vec2 zeroToTwo = zeroToOne * 2.0;
     vec2 clipSpace = zeroToTwo - 1.0;
+
     gl_Position = vec4(clipSpace * vec2(1, -1), 0, 1);
+
+    v_texCoord = a_texCoord;
   }
 `;
 const fragmentGlsl = `
   precision mediump float;
-  uniform vec4 u_color;
-  void main () {
-    gl_FragColor = u_color;
+
+  uniform sampler2D u_image;
+
+  varying vec2 v_texCoord;
+
+  void main() {
+    gl_FragColor = texture2D(u_image, v_texCoord).bgra;
   }
 `;
-const createShader = (
-  gl: WebGLRenderingContext,
-  type: number,
-  source: string
-) => {
-  const shader = gl.createShader(type)!;
-  gl.shaderSource(shader, source);
-  gl.compileShader(shader);
-  const success = gl.getShaderParameter(shader, gl.COMPILE_STATUS);
-  if (success) {
-    return shader;
-  }
-  console.log(gl.getShaderInfoLog(shader));
-  gl.deleteShader(shader);
-};
-const createProgram = (
-  gl: WebGLRenderingContext,
-  vertex: WebGLShader,
-  fragment: WebGLShader
-) => {
-  const program = gl.createProgram()!;
-  gl.attachShader(program, vertex);
-  gl.attachShader(program, fragment);
-  gl.linkProgram(program);
-  const success = gl.getProgramParameter(program, gl.LINK_STATUS);
-  if (success) {
-    return program;
-  }
-  console.log(gl.getProgramInfoLog(program));
-  gl.deleteProgram(program);
-};
 
-const getRectangle = (
+const setRectangle = (
   gl: WebGLRenderingContext,
   x: number,
   y: number,
@@ -68,56 +49,72 @@ const getRectangle = (
     gl.STATIC_DRAW
   );
 };
-
-const random = (range: number) => {
-  return Math.floor(Math.random() * range);
-};
-const draw = (gl: WebGLRenderingContext) => {
-  const vertex = createShader(gl, gl.VERTEX_SHADER, vertexGlsl)!;
-  const fragment = createShader(gl, gl.FRAGMENT_SHADER, fragmentGlsl)!;
-  const program = createProgram(gl, vertex, fragment)!;
+const render = (gl: WebGLRenderingContext, image: HTMLImageElement) => {
+  const program = createProgramFromSources(gl, [vertexGlsl, fragmentGlsl]);
+  if (!program) return;
 
   const positionLoc = gl.getAttribLocation(program, "a_position");
-  const resolutionLoc = gl.getUniformLocation(program, "u_resolution");
-  const colorLoc = gl.getUniformLocation(program, "u_color");
+  const texcoordLoc = gl.getAttribLocation(program, "a_texCoord");
 
   const positionBuf = gl.createBuffer();
-
   gl.bindBuffer(gl.ARRAY_BUFFER, positionBuf);
+  setRectangle(gl, 0, 0, image.width, image.height);
 
-  const positions = [10, 20, 80, 20, 10, 30, 10, 30, 80, 20, 80, 30];
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
+  const texcoordBuf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, texcoordBuf);
+  gl.bufferData(
+    gl.ARRAY_BUFFER,
+    new Float32Array([
+      0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0, 1.0,
+    ]),
+    gl.STATIC_DRAW
+  );
 
-  // render
+  const texture = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, texture);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+
+  const resolutionLoc = gl.getUniformLocation(program, "u_resolution");
+
+  resizeCanvasToDisplaySize(gl.canvas as unknown as HTMLCanvasElement);
+
   gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
-  // clear canvas
+
   gl.clearColor(0, 0, 0, 0);
   gl.clear(gl.COLOR_BUFFER_BIT);
 
   gl.useProgram(program);
 
   gl.enableVertexAttribArray(positionLoc);
+  gl.bindBuffer(gl.ARRAY_BUFFER, positionBuf);
+
   gl.vertexAttribPointer(positionLoc, 2, gl.FLOAT, false, 0, 0);
+
+  gl.enableVertexAttribArray(texcoordLoc);
+  gl.bindBuffer(gl.ARRAY_BUFFER, texcoordBuf);
+
+  gl.vertexAttribPointer(texcoordLoc, 2, gl.FLOAT, false, 0, 0);
+
   gl.uniform2f(resolutionLoc, gl.canvas.width, gl.canvas.height);
 
-  for (let i = 0; i < 50; i++) {
-    getRectangle(gl, random(300), random(300), random(300), random(200));
-    gl.uniform4f(colorLoc, Math.random(), Math.random(), Math.random(), 1);
-    gl.drawArrays(gl.TRIANGLES, 0, 6);
-  }
+  gl.drawArrays(gl.TRIANGLES, 0, 6);
 };
-function App() {
+const App: FC = () => {
   const ref = useRef<HTMLCanvasElement>(null);
-
   useEffect(() => {
     if (!ref.current) return;
-    draw(ref.current.getContext("webgl")!);
+    const image = new Image();
+    image.src = "/public/leaves.jpg";
+    image.onload = () => {
+      const gl = ref.current!.getContext("webgl")!;
+      render(gl, image);
+    };
   });
-  return (
-    <>
-      <canvas className="stage" ref={ref}></canvas>
-    </>
-  );
-}
-
+  return <canvas ref={ref}></canvas>;
+};
 export default App;

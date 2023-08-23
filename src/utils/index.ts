@@ -63,7 +63,7 @@ export function loadShader(
   gl: WebGLRenderingContext,
   shaderSource: string,
   shaderType: number,
-  opt_errorCallback: Cb
+  opt_errorCallback?: Cb
 ) {
   const errFn = opt_errorCallback || error;
   // Create the shader object
@@ -111,9 +111,9 @@ export function loadShader(
 export function createProgram(
   gl: WebGLRenderingContext,
   shaders: WebGLShader[],
-  opt_attribs: string[],
-  opt_locations: number[],
-  opt_errorCallback: Cb
+  opt_attribs?: string[],
+  opt_locations?: number[],
+  opt_errorCallback?: Cb
 ) {
   const errFn = opt_errorCallback || error;
   const program = gl.createProgram()!;
@@ -174,9 +174,9 @@ const defaultShaderType = ["VERTEX_SHADER", "FRAGMENT_SHADER"];
 export function createProgramFromSources(
   gl: WebGLRenderingContext,
   shaderSources: string[],
-  opt_attribs: string[],
-  opt_locations: number[],
-  opt_errorCallback: Cb
+  opt_attribs?: string[],
+  opt_locations?: number[],
+  opt_errorCallback?: Cb
 ) {
   const shaders: WebGLShader[] = [];
   for (let ii = 0; ii < shaderSources.length; ++ii) {
@@ -767,7 +767,10 @@ export function getExtensionWithKnownPrefixes(gl, name) {
  * @return {boolean} true if the canvas was resized.
  * @memberOf module:webgl-utils
  */
-export function resizeCanvasToDisplaySize(canvas, multiplier) {
+export function resizeCanvasToDisplaySize(
+  canvas: HTMLCanvasElement,
+  multiplier?: number
+) {
   multiplier = multiplier || 1;
   const width = (canvas.clientWidth * multiplier) | 0;
   const height = (canvas.clientHeight * multiplier) | 0;
@@ -906,23 +909,6 @@ export function getNormalizationForTypedArray(typedArray) {
 
 export function isArrayBuffer(a) {
   return a.buffer && a.buffer instanceof ArrayBuffer;
-}
-
-export function guessNumComponentsFromName(name, length) {
-  let numComponents;
-  if (name.indexOf("coord") >= 0) {
-    numComponents = 2;
-  } else if (name.indexOf("color") >= 0) {
-    numComponents = 4;
-  } else {
-    numComponents = 3; // position, normals, indices ...
-  }
-
-  if (length % numComponents > 0) {
-    throw "can not guess numComponents. You should specify it.";
-  }
-
-  return numComponents;
 }
 
 export function makeTypedArray(array, name) {
