@@ -29,32 +29,13 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/**
- * Various 2d math functions.
- *
- * @module webgl-2d-math
- */
-
-/**
- * An array or typed array with 2 values.
- * @typedef {number[]|TypedArray} Vector2
- * @memberOf module:webgl-2d-math
- */
-
-/**
- * An array or typed array with 16 values.
- * @typedef {number[]|TypedArray} Matrix3
- * @memberOf module:webgl-2d-math
- */
-
 let MatType = Float32Array;
 
+type Matrix = InstanceType<typeof MatType>;
 /**
  * Sets the type this library creates for a Mat3
- * @param {constructor} Ctor the constructor for the type. Either `Float32Array` or `Array`
- * @return {constructor} previous constructor for Mat3
  */
-function setDefaultType(Ctor) {
+export function setDefaultType(Ctor: typeof MatType) {
   const OldType = MatType;
   MatType = Ctor;
   return OldType;
@@ -63,32 +44,28 @@ function setDefaultType(Ctor) {
 /**
  * Takes two Matrix3s, a and b, and computes the product in the order
  * that pre-composes b with a.  In other words, the matrix returned will
- * @param {module:webgl-2d-math.Matrix3} a A matrix.
- * @param {module:webgl-2d-math.Matrix3} b A matrix.
- * @param {module:webgl-2d-math.Matrix4} [dst] optional matrix to store result
- * @return {module:webgl-2d-math.Matrix3} the result.
  * @memberOf module:webgl-2d-math
  */
-function multiply(a, b, dst) {
+function multiply(a: Matrix, b: Matrix, dst?: Matrix) {
   dst = dst || new MatType(9);
-  var a00 = a[0 * 3 + 0];
-  var a01 = a[0 * 3 + 1];
-  var a02 = a[0 * 3 + 2];
-  var a10 = a[1 * 3 + 0];
-  var a11 = a[1 * 3 + 1];
-  var a12 = a[1 * 3 + 2];
-  var a20 = a[2 * 3 + 0];
-  var a21 = a[2 * 3 + 1];
-  var a22 = a[2 * 3 + 2];
-  var b00 = b[0 * 3 + 0];
-  var b01 = b[0 * 3 + 1];
-  var b02 = b[0 * 3 + 2];
-  var b10 = b[1 * 3 + 0];
-  var b11 = b[1 * 3 + 1];
-  var b12 = b[1 * 3 + 2];
-  var b20 = b[2 * 3 + 0];
-  var b21 = b[2 * 3 + 1];
-  var b22 = b[2 * 3 + 2];
+  const a00 = a[0 * 3 + 0];
+  const a01 = a[0 * 3 + 1];
+  const a02 = a[0 * 3 + 2];
+  const a10 = a[1 * 3 + 0];
+  const a11 = a[1 * 3 + 1];
+  const a12 = a[1 * 3 + 2];
+  const a20 = a[2 * 3 + 0];
+  const a21 = a[2 * 3 + 1];
+  const a22 = a[2 * 3 + 2];
+  const b00 = b[0 * 3 + 0];
+  const b01 = b[0 * 3 + 1];
+  const b02 = b[0 * 3 + 2];
+  const b10 = b[1 * 3 + 0];
+  const b11 = b[1 * 3 + 1];
+  const b12 = b[1 * 3 + 2];
+  const b20 = b[2 * 3 + 0];
+  const b21 = b[2 * 3 + 1];
+  const b22 = b[2 * 3 + 2];
 
   dst[0] = b00 * a00 + b01 * a10 + b02 * a20;
   dst[1] = b00 * a01 + b01 * a11 + b02 * a21;
@@ -105,10 +82,8 @@ function multiply(a, b, dst) {
 
 /**
  * Creates a 3x3 identity matrix
- * @param {module:webgl-2d-math.Matrix4} [dst] optional matrix to store result
- * @return {module:webgl2-2d-math.Matrix3} an identity matrix
  */
-function identity(dst) {
+function identity(dst?: Matrix) {
   dst = dst || new MatType(9);
   dst[0] = 1;
   dst[1] = 0;
@@ -124,14 +99,10 @@ function identity(dst) {
 }
 
 /**
- * Creates a 2D projection matrix
- * @param {number} width width in pixels
- * @param {number} height height in pixels
- * @param {module:webgl-2d-math.Matrix4} [dst] optional matrix to store result
- * @return {module:webgl-2d-math.Matrix3} a projection matrix that converts from pixels to clipspace with Y = 0 at the top.
+ * Creates a 2D projection matrix= 0 at the top.
  * @memberOf module:webgl-2d-math
  */
-function projection(width, height, dst) {
+function projection(width: number, height: number, dst?: Matrix) {
   dst = dst || new MatType(9);
   // Note: This matrix flips the Y axis so 0 is at the top.
 
@@ -150,26 +121,16 @@ function projection(width, height, dst) {
 
 /**
  * Multiplies by a 2D projection matrix
- * @param {module:webgl-2d-math.Matrix3} the matrix to be multiplied
- * @param {number} width width in pixels
- * @param {number} height height in pixels
- * @param {module:webgl-2d-math.Matrix4} [dst] optional matrix to store result
- * @return {module:webgl-2d-math.Matrix3} the result
- * @memberOf module:webgl-2d-math
  */
-function project(m, width, height, dst) {
+function project(m: Matrix, width: number, height: number, dst?: Matrix) {
   return multiply(m, projection(width, height), dst);
 }
 
 /**
  * Creates a 2D translation matrix
- * @param {number} tx amount to translate in x
- * @param {number} ty amount to translate in y
- * @param {module:webgl-2d-math.Matrix4} [dst] optional matrix to store result
- * @return {module:webgl-2d-math.Matrix3} a translation matrix that translates by tx and ty.
  * @memberOf module:webgl-2d-math
  */
-function translation(tx, ty, dst) {
+function translation(tx: number, ty: number, dst?: Matrix) {
   dst = dst || new MatType(9);
 
   dst[0] = 1;
@@ -187,27 +148,17 @@ function translation(tx, ty, dst) {
 
 /**
  * Multiplies by a 2D translation matrix
- * @param {module:webgl-2d-math.Matrix3} the matrix to be multiplied
- * @param {number} tx amount to translate in x
- * @param {number} ty amount to translate in y
- * @param {module:webgl-2d-math.Matrix4} [dst] optional matrix to store result
- * @return {module:webgl-2d-math.Matrix3} the result
- * @memberOf module:webgl-2d-math
  */
-function translate(m, tx, ty, dst) {
+function translate(m: Matrix, tx: number, ty: number, dst?: Matrix) {
   return multiply(m, translation(tx, ty), dst);
 }
 
 /**
  * Creates a 2D rotation matrix
- * @param {number} angleInRadians amount to rotate in radians
- * @param {module:webgl-2d-math.Matrix4} [dst] optional matrix to store result
- * @return {module:webgl-2d-math.Matrix3} a rotation matrix that rotates by angleInRadians
- * @memberOf module:webgl-2d-math
  */
-function rotation(angleInRadians, dst) {
-  var c = Math.cos(angleInRadians);
-  var s = Math.sin(angleInRadians);
+function rotation(angleInRadians: number, dst?: Matrix) {
+  const c = Math.cos(angleInRadians);
+  const s = Math.sin(angleInRadians);
 
   dst = dst || new MatType(9);
 
@@ -226,25 +177,15 @@ function rotation(angleInRadians, dst) {
 
 /**
  * Multiplies by a 2D rotation matrix
- * @param {module:webgl-2d-math.Matrix3} the matrix to be multiplied
- * @param {number} angleInRadians amount to rotate in radians
- * @param {module:webgl-2d-math.Matrix4} [dst] optional matrix to store result
- * @return {module:webgl-2d-math.Matrix3} the result
- * @memberOf module:webgl-2d-math
  */
-function rotate(m, angleInRadians, dst) {
+function rotate(m: Matrix, angleInRadians: number, dst?: Matrix) {
   return multiply(m, rotation(angleInRadians), dst);
 }
 
 /**
  * Creates a 2D scaling matrix
- * @param {number} sx amount to scale in x
- * @param {number} sy amount to scale in y
- * @param {module:webgl-2d-math.Matrix4} [dst] optional matrix to store result
- * @return {module:webgl-2d-math.Matrix3} a scale matrix that scales by sx and sy.
- * @memberOf module:webgl-2d-math
  */
-function scaling(sx, sy, dst) {
+function scaling(sx: number, sy: number, dst?: Matrix) {
   dst = dst || new MatType(9);
 
   dst[0] = sx;
@@ -262,29 +203,23 @@ function scaling(sx, sy, dst) {
 
 /**
  * Multiplies by a 2D scaling matrix
- * @param {module:webgl-2d-math.Matrix3} the matrix to be multiplied
- * @param {number} sx amount to scale in x
- * @param {number} sy amount to scale in y
- * @param {module:webgl-2d-math.Matrix4} [dst] optional matrix to store result
- * @return {module:webgl-2d-math.Matrix3} the result
- * @memberOf module:webgl-2d-math
  */
-function scale(m, sx, sy, dst) {
+function scale(m: Matrix, sx: number, sy: number, dst?: Matrix) {
   return multiply(m, scaling(sx, sy), dst);
 }
 
-function dot(x1, y1, x2, y2) {
+function dot(x1: number, y1: number, x2: number, y2: number) {
   return x1 * x2 + y1 * y2;
 }
 
-function distance(x1, y1, x2, y2) {
-  var dx = x1 - x2;
-  var dy = y1 - y2;
+function distance(x1: number, y1: number, x2: number, y2: number) {
+  const dx = x1 - x2;
+  const dy = y1 - y2;
   return Math.sqrt(dx * dx + dy * dy);
 }
 
-function normalize(x, y) {
-  var l = distance(0, 0, x, y);
+function normalize(x: number, y: number) {
+  const l = distance(0, 0, x, y);
   if (l > 0.00001) {
     return [x / l, y / l];
   } else {
@@ -294,31 +229,31 @@ function normalize(x, y) {
 
 // i = incident
 // n = normal
-function reflect(ix, iy, nx, ny) {
+function reflect(ix: number, iy: number, nx: number, ny: number) {
   // I - 2.0 * dot(N, I) * N.
-  var d = dot(nx, ny, ix, iy);
+  const d = dot(nx, ny, ix, iy);
   return [ix - 2 * d * nx, iy - 2 * d * ny];
 }
 
-function radToDeg(r) {
+function radToDeg(r: number) {
   return (r * 180) / Math.PI;
 }
 
-function degToRad(d) {
+function degToRad(d: number) {
   return (d * Math.PI) / 180;
 }
 
-function transformPoint(m, v) {
-  var v0 = v[0];
-  var v1 = v[1];
-  var d = v0 * m[0 * 3 + 2] + v1 * m[1 * 3 + 2] + m[2 * 3 + 2];
+function transformPoint(m: Matrix, v: number[]) {
+  const v0 = v[0];
+  const v1 = v[1];
+  const d = v0 * m[0 * 3 + 2] + v1 * m[1 * 3 + 2] + m[2 * 3 + 2];
   return [
     (v0 * m[0 * 3 + 0] + v1 * m[1 * 3 + 0] + m[2 * 3 + 0]) / d,
     (v0 * m[0 * 3 + 1] + v1 * m[1 * 3 + 1] + m[2 * 3 + 1]) / d,
   ];
 }
 
-function inverse(m, dst) {
+function inverse(m: Matrix, dst?: Matrix) {
   dst = dst || new MatType(9);
 
   const m00 = m[0 * 3 + 0];
