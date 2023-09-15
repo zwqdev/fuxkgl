@@ -2,19 +2,28 @@ import { FC, useEffect, useRef } from "react";
 import {
   createProgramFromSources,
   resizeCanvasToDisplaySize,
-  setGeometry,
+  set3DF,
   setRectangle,
 } from "./utils";
-import m3 from "./utils/m3";
+// import m3 from "./utils/m3";
+import m4 from "./utils/m4";
 
 const vertexGlsl = `
-  attribute vec2 a_position;
-  
-  uniform vec2 u_resolution;
-  uniform mat3 u_matrix;
+  attribute vec4 a_position;
+  uniform mat4 u_matrix;
+
+  uniform float u_fudgeFactor
+
+  attribute vec4 a_color;
+  varying vec4 v_color;
 
   void main() {
-    gl_Position = vec4((u_matrix * vec3(a_position, 1)).xy, 0, 1);
+    vec4 position = u_matrix * a_position;
+    // 
+    float zToDivideBy = 1.0 + position.z * u_fudgeFactor
+    gl_Position = vec4(position.xy / zToDivideBy, position.zw);
+
+    v_color = a_color;
   }
 `;
 const fragmentGlsl = `
@@ -22,8 +31,10 @@ const fragmentGlsl = `
 
   uniform vec4 u_color;
 
+  varying vec4 v_color;
+
   void main() {
-    gl_FragColor = u_color;
+    gl_FragColor = v_color;
   }
 `;
 
@@ -108,7 +119,7 @@ const main = (gl: WebGLRenderingContext) => {
   const positionBuf = gl.createBuffer();
   gl.bindBuffer(gl.ARRAY_BUFFER, positionBuf);
   // put geometry data into buffer
-  setGeometry(gl);
+  set3DF(gl);
 
   const translation = [100, 150];
   const angleInRadian = 0;
@@ -124,37 +135,42 @@ const main = (gl: WebGLRenderingContext) => {
     gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
 
     // clear
-    gl.clear(gl.COLOR_BUFFER_BIT);
-
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    gl.enable(gl.CULL_FACE);
+    gl.enable(gl.DEPTH_TEST);
     gl.useProgram(program);
 
     // turn on the attribute
     gl.enableVertexAttribArray(positionLoc);
     gl.bindBuffer(gl.ARRAY_BUFFER, positionBuf);
-    gl.vertexAttribPointer(positionLoc, 2, gl.FLOAT, false, 0, 0);
+    gl.vertexAttribPointer(positionLoc, 3, gl.FLOAT, false, 0, 0);
 
     // set resolution
     gl.uniform2f(resolutionLoc, gl.canvas.width, gl.canvas.height);
 
     gl.uniform4fv(colorLoc, color);
 
-    // matrix
-    const transMatrix = m3.translation(translation[0], translation[1]);
-    const rotationMatrix = m3.rotation(angleInRadian);
-    const scaleMatrix = m3.scaling(scale[0], scale[1]);
-    const projectionMatrix = m3.projection(
-      (gl.canvas as HTMLCanvasElement).clientWidth,
-      (gl.canvas as HTMLCanvasElement).clientHeight
-    );
+    // // matrix
+    // const transMatrix = m3.translation(translation[0], translation[1]);
+    // const rotationMatrix = m3.rotation(angleInRadian);
+    // const scaleMatrix = m3.scaling(scale[0], scale[1]);
+    // const projectionMatrix = m3.projection(
+    //   (gl.canvas as HTMLCanvasElement).clientWidth,
+    //   (gl.canvas as HTMLCanvasElement).clientHeight
+    // );
 
-    // multiply
-    let matrix = m3.multiply(projectionMatrix, transMatrix);
-    matrix = m3.multiply(matrix, rotationMatrix);
-    matrix = m3.multiply(matrix, scaleMatrix);
-
+    // // multiply
+    // let matrix = m3.multiply(projectionMatrix, transMatrix);
+    // matrix = m3.multiply(matrix, rotationMatrix);
+    // matrix = m3.multiply(matrix, scaleMatrix);
+    let matrix = m4.projection(gl.canvas.width, gl.canvas.height, 400);
+    matrix = m4.translate(matrix, 45, 150, 126);
+    matrix = m4.xRotate(matrix, 0);
     gl.uniformMatrix3fv(matrixLoc, false, matrix);
 
-    gl.drawArrays(gl.TRIANGLES, 0, 18);
+    //
+
+    gl.drawArrays(gl.TRIANGLES, 0, 16 * 6);
   }
 };
 
